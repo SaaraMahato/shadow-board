@@ -7,15 +7,40 @@ dotenv.config();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const call = async (systemPrompt, userPrompt) => {
-  const res = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user",   content: userPrompt },
-    ],
-    max_tokens: 400,
-  });
-  return res.choices[0].message.content;
+  const maxRetries = 5;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    try {
+      const res = await groq.chat.completions.create({
+        // Consider using a smaller model if you hit rate limits frequently
+        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user",   content: userPrompt },
+        ],
+        max_tokens: 400,
+      });
+
+      return res.choices[0].message.content;
+    } catch (err) {
+      attempt += 1;
+      const status = err?.status || err?.code || null;
+      const isRateLimit = err?.message?.includes?.("rate limit") || err?.error?.type === "tokens" || status === 429;
+
+      if (isRateLimit && attempt < maxRetries) {
+        const waitMs = Math.min(1000 * 2 ** attempt, 10000);
+        console.warn(`Groq rate limit detected, retrying in ${waitMs}ms (attempt ${attempt}/${maxRetries})`);
+        await new Promise((r) => setTimeout(r, waitMs));
+        continue;
+      }
+
+      // Re-throw so caller can log and respond appropriately
+      throw err;
+    }
+  }
+
+  throw new Error("Groq API: exceeded max retries");
 };
 
 // Step 1 — Initial responses from all 4 agents
