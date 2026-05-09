@@ -94,11 +94,11 @@ export default function App() {
     setActiveTab("initial");
 
     try {
-      const { data } = await axios.post("/api/analyze", { 
-        decision, 
-        decisionType,
-        userId
-      });
+      const { data } = await axios.post("https://shadow-board-backend.onrender.com/api/analyze", { 
+  decision, 
+  decisionType,
+  userId
+});
       setInitialResponses(data.initialResponses);
       setCritiques(data.critiques);
       setAgentResults(data.agents);
