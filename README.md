@@ -52,7 +52,7 @@ npm start
 ```
 
 ### 4. Open in browser
-http://localhost:3001
+http://10.129.143.116:3000
 
 ## 📸 Screenshots
 
